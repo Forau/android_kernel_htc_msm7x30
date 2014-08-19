@@ -2414,6 +2414,7 @@ wl_iw_set_mode(
 		infra = ap = 1;
 		break;
 	case IW_MODE_ADHOC:
+	case IW_MODE_MONITOR:
 	case IW_MODE_AUTO:
 		break;
 	case IW_MODE_INFRA:
@@ -2442,6 +2443,10 @@ wl_iw_get_mode(
 )
 {
 	int error, infra = 0, ap = 0;
+	if (*uwrq == IW_MODE_MONITOR) {
+		// Test keeping it
+ 		return 0;
+ 	}
 
 	WL_TRACE(("%s: SIOCGIWMODE\n", dev->name));
 
@@ -7923,6 +7928,12 @@ static const struct iw_priv_args wl_iw_priv_args[] =
 		IW_PRIV_TYPE_CHAR | IW_PRIV_SIZE_FIXED | 0,
 		"WL_FW_RELOAD"
 	},
+	{
+		WL_AP_STA_DISASSOC,
+		IW_PRIV_TYPE_CHAR | 256,
+		IW_PRIV_TYPE_CHAR | 0,
+		"AP_STA_DISASSOC"
+	},
 #endif 
 #if defined(CSCAN)
 	{ 
@@ -8200,8 +8211,12 @@ wl_iw_event(struct net_device *dev, wl_event_msg_t *e, void* data)
 
 	WL_TRACE(("%s: dev=%s event=%d \n", __FUNCTION__, dev->name, event_type));
 
-	
 	switch (event_type) {
+	
+	case WLC_E_RELOAD:
+		WL_ERROR(("%s: Firmware ERROR %d\n", __FUNCTION__, status));
+		net_os_send_hang_message(dev);
+		goto wl_iw_event_end;
 #if defined(SOFTAP)
 	case WLC_E_PRUNE:
 		if (ap_cfg_running) {

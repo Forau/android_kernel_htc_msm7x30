@@ -2341,6 +2341,11 @@ wl_iw_get_mode(
 {
 	int error, infra = 0, ap = 0;
 
+	if (*uwrq == IW_MODE_MONITOR) {
+		// Test keeping it
+ 		return 0;
+ 	}
+
 	WL_TRACE(("%s: SIOCGIWMODE\n", dev->name));
 
 	if ((error = dev_wlc_ioctl(dev, WLC_GET_INFRA, &infra, sizeof(infra))) ||
