@@ -1284,7 +1284,7 @@ CONFIG_WLAN=y
 # CONFIG_BCM4329 is not set
 
 #CONFIG_BCM4329=m
-#CONFIG_BCM4329_FW_PATH="/vendor/firmware/fw_bcm4329.bcmon.bin"
+#CONFIG_BCM4329_FW_PATH="/system/vendor/firmware/fw_bcm4329.bcmon.bin"
 #CONFIG_BCM4329_NVRAM_PATH="/proc/calibration"
  
 CONFIG_WIRELESS=y
@@ -1294,7 +1294,7 @@ CONFIG_WEXT_PROC=y
 CONFIG_WEXT_SPY=y
 CONFIG_WEXT_PRIV=y
 
-# CONFIG_BCMDHD_GOOGLE=y
+CONFIG_BCMDHD_GOOGLE=y
 
 CONFIG_BCMDHD=y
 CONFIG_BCMDHD_FW_PATH="/system/vendor/firmware/fw_bcmdhd.bin"
