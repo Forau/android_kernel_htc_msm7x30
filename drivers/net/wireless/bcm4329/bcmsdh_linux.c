@@ -77,6 +77,7 @@ struct bcmsdh_hc {
 	unsigned int oob_irq;
 	unsigned long oob_flags; /* OOB Host specifiction as edge and etc */
 	bool oob_irq_registered;
+	bool oob_irq_enable_flag;
 #if defined(OOB_INTR_ONLY)
 	spinlock_t irq_lock;
 #endif
@@ -236,6 +237,7 @@ int bcmsdh_probe(struct device *dev)
 	sdhc->oob_irq = irq;
 	sdhc->oob_flags = irq_flags;
 	sdhc->oob_irq_registered = FALSE;	/* to make sure.. */
+	sdhc->oob_irq_enable_flag = FALSE;
 #if defined(OOB_INTR_ONLY)
 	spin_lock_init(&sdhc->irq_lock);
 #endif
@@ -421,6 +423,10 @@ bcmsdh_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	/* match this pci device with what we support */
 	/* we can't solely rely on this to believe it is our SDIO Host Controller! */
 	if (!bcmsdh_chipmatch(pdev->vendor, pdev->device)) {
+		if (pdev->vendor == VENDOR_BROADCOM) {
+			SDLX_MSG(("%s: Unknown Broadcom device (vendor: %#x, device: %#x).\n",
+				__FUNCTION__, pdev->vendor, pdev->device));
+		}
 		return -ENODEV;
 	}
 
@@ -636,8 +642,9 @@ int bcmsdh_register_oob_intr(void * dhdp)
 		if (error)
 			return -ENODEV;
 
-		set_irq_wake(sdhcinfo->oob_irq, 1);
+		enable_irq_wake(sdhcinfo->oob_irq);
 		sdhcinfo->oob_irq_registered = TRUE;
+		sdhcinfo->oob_irq_enable_flag = TRUE;
 	}
 
 	return 0;
@@ -645,8 +652,9 @@ int bcmsdh_register_oob_intr(void * dhdp)
 
 void bcmsdh_set_irq(int flag)
 {
-	if (sdhcinfo->oob_irq_registered) {
+	if (sdhcinfo->oob_irq_registered && sdhcinfo->oob_irq_enable_flag != flag) {
 		SDLX_MSG(("%s Flag = %d", __FUNCTION__, flag));
+		sdhcinfo->oob_irq_enable_flag = flag;
 		if (flag) {
 			enable_irq(sdhcinfo->oob_irq);
 			enable_irq_wake(sdhcinfo->oob_irq);
@@ -661,9 +669,8 @@ void bcmsdh_unregister_oob_intr(void)
 {
 	SDLX_MSG(("%s: Enter\n", __FUNCTION__));
 
-	if (sdhcinfo->oob_irq_registered) {
-		set_irq_wake(sdhcinfo->oob_irq, 0);
-		disable_irq(sdhcinfo->oob_irq);	/* just in case.. */
+	if (sdhcinfo->oob_irq_registered == TRUE) {
+		bcmsdh_set_irq(FALSE);
 		free_irq(sdhcinfo->oob_irq, NULL);
 		sdhcinfo->oob_irq_registered = FALSE;
 	}
@@ -725,6 +732,7 @@ EXPORT_SYMBOL(bcmsdh_register);
 EXPORT_SYMBOL(bcmsdh_unregister);
 EXPORT_SYMBOL(bcmsdh_chipmatch);
 EXPORT_SYMBOL(bcmsdh_reset);
+EXPORT_SYMBOL(bcmsdh_waitlockfree);
 
 EXPORT_SYMBOL(bcmsdh_get_dstatus);
 EXPORT_SYMBOL(bcmsdh_cfg_read_word);
